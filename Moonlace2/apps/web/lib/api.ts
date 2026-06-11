@@ -1,9 +1,12 @@
+import { PRODUCTION_API_URL } from "./constants";
+import { parseApiError } from "./parseApiError";
+
 function getApiBase(): string {
   if (process.env.NEXT_PUBLIC_API_URL) return process.env.NEXT_PUBLIC_API_URL;
-  if (typeof window !== "undefined") return ""; // same-origin /api rewrite on Vercel
+  if (process.env.NODE_ENV === "production") return PRODUCTION_API_URL;
+  if (typeof window !== "undefined") return ""; // same-origin /api rewrite in dev
   return process.env.API_URL || "http://localhost:4000";
 }
-
 function apiUrl(path: string): string {
   const base = getApiBase();
   if (!base) return `/api${path}`;
@@ -67,7 +70,7 @@ export async function api<T>(
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error(err.error || "Request failed");
+    throw new Error(parseApiError(err, res.statusText || "Ошибка запроса"));
   }
   return res.json();
 }

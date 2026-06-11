@@ -55,12 +55,13 @@ export default function ThemesPage() {
   }, [tab, user]);
 
   const create = async () => {
-    if (!form.name.trim()) {
-      showToast("Введите название темы", "error");
+    const name = form.name.trim();
+    if (name.length < 2) {
+      showToast("Название темы: минимум 2 символа", "error");
       return;
     }
     try {
-      await api("/themes", { method: "POST", body: JSON.stringify(form) });
+      await api("/themes", { method: "POST", body: JSON.stringify({ ...form, name }) });
       setShowCreate(false);
       setForm({ name: "", accentColor: "#b026ff", backgroundColor: "#050508", fontFamily: "Space Mono", isPublic: true, scanlineIntensity: 0.04 });
       showToast(form.isPublic ? "Тема опубликована" : "Тема создана");
@@ -139,7 +140,7 @@ export default function ThemesPage() {
 
       {showCreate && (
         <Card style={{ marginBottom: "16px" }}>
-          <Input placeholder="Название темы" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          <Input placeholder="Название темы (мин. 2 символа)" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
           <div style={{ display: "flex", gap: "12px", marginTop: "10px", flexWrap: "wrap", alignItems: "center" }}>
             <label>Акцент: <input type="color" value={form.accentColor} onChange={(e) => setForm({ ...form, accentColor: e.target.value })} /></label>
             <label>Фон: <input type="color" value={form.backgroundColor} onChange={(e) => setForm({ ...form, backgroundColor: e.target.value })} /></label>

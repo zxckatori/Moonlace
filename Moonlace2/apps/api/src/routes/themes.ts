@@ -28,7 +28,12 @@ export async function themeRoutes(app: FastifyInstance) {
   app.post("/v1/themes", { preHandler: [app.authenticate] }, async (req) => {
     const { userId } = req.user as { userId: string };
     const parsed = createThemeSchema.safeParse(req.body);
-    if (!parsed.success) throw app.httpErrors.badRequest();
+    if (!parsed.success) {
+      throw app.httpErrors.badRequest(JSON.stringify({
+        error: parsed.error.flatten(),
+        message: "Проверьте поля формы",
+      }));
+    }
 
     return prisma.userTheme.create({
       data: { authorId: userId, ...parsed.data },
