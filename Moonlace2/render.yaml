@@ -1,11 +1,11 @@
-# Render.com — бесплатный хостинг API
-# https://dashboard.render.com → New → Blueprint → подключить репозиторий
-
+# Render.com — бесплатный хостинг API Moonlace
+# GitHub: zxckatori/Moonlace → Blueprint Path: Moonlace2/render.yaml
 services:
   - type: web
     name: moonlace-api
     runtime: node
     plan: free
+    rootDir: Moonlace2
     buildCommand: npm install && npm run db:generate && npm run db:push && npm run db:seed && npm run build -w @moonlace/api
     startCommand: npm run start -w @moonlace/api
     healthCheckPath: /v1/health
@@ -21,14 +21,6 @@ services:
       - key: JWT_REFRESH_SECRET
         generateValue: true
       - key: WEB_URL
-        sync: false
-      - key: S3_ENDPOINT
-        sync: false
-      - key: S3_ACCESS_KEY
-        sync: false
-      - key: S3_SECRET_KEY
-        sync: false
+        value: https://moonlace.vercel.app
       - key: S3_BUCKET
         value: moonlace-media
-      - key: S3_PUBLIC_URL
-        sync: false
