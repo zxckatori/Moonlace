@@ -1,0 +1,244 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum FeedEventType {
+  FORUM_POST
+  WALL_POST
+  GALLERY
+  LISTENING
+  STREAM_LIVE
+  NEW_TOPIC
+}
+
+enum MediaType {
+  IMAGE
+  GIF
+  VIDEO
+  AUDIO
+}
+
+model User {
+  id           String   @id @default(cuid())
+  login        String   @unique
+  nickname     String   @unique
+  email        String   @unique
+  passwordHash String
+  avatarUrl    String?
+  status       String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  profile          Profile?
+  posts            Post[]
+  topics           Topic[]
+  sentMessages     Message[]          @relation("SentMessages")
+  receivedMessages Message[]          @relation("ReceivedMessages")
+  themes           UserTheme[]
+  galleryItems     GalleryItem[]
+  listeningHistory ListeningEntry[]
+  feedEvents       FeedEvent[]
+  guestbookOwned   GuestbookEntry[]   @relation("ProfileOwner")
+  guestbookWritten GuestbookEntry[]   @relation("GuestbookAuthor")
+  reactions        PostReaction[]
+  subscriptions    TopicSubscription[]
+  streamStatus     StreamStatus?
+}
+
+model Profile {
+  userId          String  @id
+  backgroundUrl   String?
+  country         String?
+  city            String?
+  timezone        String? @default("Europe/Moscow")
+  setupKeyboard   String?
+  setupMouse      String?
+  setupPc         String?
+  setupComponents String?
+  socialLinks     Json?
+  privacySettings Json    @default("{\"guestbook\":\"all\",\"showLogin\":false,\"showSetup\":true,\"showListening\":true}")
+  activeThemeId   String?
+
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  theme UserTheme? @relation(fields: [activeThemeId], references: [id], onDelete: SetNull)
+}
+
+model Category {
+  id          String @id @default(cuid())
+  name        String
+  slug        String @unique
+  description String?
+  sortOrder   Int    @default(0)
+  topics      Topic[]
+}
+
+model Topic {
+  id         String   @id @default(cuid())
+  title      String
+  slug       String
+  categoryId String
+  authorId   String
+  tags       String[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  category      Category            @relation(fields: [categoryId], references: [id])
+  author        User                @relation(fields: [authorId], references: [id])
+  posts         Post[]
+  subscribers   TopicSubscription[]
+
+  @@unique([categoryId, slug])
+}
+
+model TopicSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  topicId   String
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, topicId])
+}
+
+model Post {
+  id         String   @id @default(cuid())
+  content    String
+  authorId   String
+  topicId    String?
+  wallUserId String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  author    User              @relation(fields: [authorId], references: [id])
+  topic     Topic?            @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  media     MediaAttachment[]
+  reactions PostReaction[]
+}
+
+model PostReaction {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  type      String   @default("like")
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+}
+
+model MediaAttachment {
+  id        String    @id @default(cuid())
+  url       String
+  type      MediaType
+  filename  String?
+  postId    String?
+  messageId String?
+  createdAt DateTime  @default(now())
+
+  post    Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  message Message? @relation(fields: [messageId], references: [id], onDelete: Cascade)
+}
+
+model FeedEvent {
+  id        String        @id @default(cuid())
+  type      FeedEventType
+  userId    String
+  payload   Json
+  createdAt DateTime      @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+  @@index([type])
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  senderId   String
+  receiverId String
+  content    String
+  read       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  sender   User              @relation("SentMessages", fields: [senderId], references: [id])
+  receiver User              @relation("ReceivedMessages", fields: [receiverId], references: [id])
+  media    MediaAttachment[]
+
+  @@index([senderId, receiverId])
+}
+
+model GalleryItem {
+  id        String    @id @default(cuid())
+  userId    String
+  type      MediaType
+  url       String
+  title     String?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ListeningEntry {
+  id         String   @id @default(cuid())
+  userId     String
+  trackTitle String
+  artist     String?
+  source     String?
+  embedUrl   String?
+  isCurrent  Boolean  @default(false)
+  shared     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model StreamStatus {
+  userId       String   @id
+  platform     String   @default("twitch")
+  platformId   String
+  isLive       Boolean  @default(false)
+  title        String?
+  category     String?
+  thumbnailUrl String?
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model UserTheme {
+  id                String  @id @default(cuid())
+  authorId          String
+  name              String
+  isPublic          Boolean @default(false)
+  backgroundUrl     String?
+  backgroundColor   String?
+  accentColor       String  @default("#b026ff")
+  fontFamily        String  @default("Space Mono")
+  scanlineIntensity Float   @default(0.04)
+  usageCount        Int     @default(0)
+  rating            Float   @default(0)
+  createdAt         DateTime @default(now())
+
+  author   User      @relation(fields: [authorId], references: [id])
+  profiles Profile[]
+}
+
+model GuestbookEntry {
+  id            String   @id @default(cuid())
+  profileUserId String
+  authorId      String
+  content       String
+  createdAt     DateTime @default(now())
+
+  profileUser User @relation("ProfileOwner", fields: [profileUserId], references: [id], onDelete: Cascade)
+  author      User @relation("GuestbookAuthor", fields: [authorId], references: [id])
+}

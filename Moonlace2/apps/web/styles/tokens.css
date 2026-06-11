@@ -1,0 +1,24 @@
+:root {
+  --void: #050508;
+  --abyss: #0a0a0f;
+  --surface: rgba(18, 18, 26, 0.75);
+  --border: #1e1e2e;
+  --text: #c8c8d0;
+  --text-muted: #6a6a7a;
+  --neon-purple: #b026ff;
+  --neon-cyan: #00f0ff;
+  --neon-magenta: #ff00aa;
+  --blood: #ff0040;
+  --glow-purple: rgba(176, 38, 255, 0.15);
+  --glow-cyan: rgba(0, 240, 255, 0.12);
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 32px;
+  --space-6: 48px;
+  --font-display: "Orbitron", sans-serif;
+  --font-body: "Space Mono", monospace;
+  --font-terminal: "VT323", monospace;
+  --font-editorial: "Cinzel", serif;
+}

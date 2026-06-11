@@ -1,0 +1,34 @@
+# Render.com — бесплатный хостинг API
+# https://dashboard.render.com → New → Blueprint → подключить репозиторий
+
+services:
+  - type: web
+    name: moonlace-api
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run db:generate && npm run db:push && npm run db:seed && npm run build -w @moonlace/api
+    startCommand: npm run start -w @moonlace/api
+    healthCheckPath: /v1/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: WEB_URL
+        sync: false
+      - key: S3_ENDPOINT
+        sync: false
+      - key: S3_ACCESS_KEY
+        sync: false
+      - key: S3_SECRET_KEY
+        sync: false
+      - key: S3_BUCKET
+        value: moonlace-media
+      - key: S3_PUBLIC_URL
+        sync: false

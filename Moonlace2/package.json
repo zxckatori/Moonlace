@@ -1,0 +1,22 @@
+{
+  "name": "moonlace",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "db:generate": "npm run generate -w @moonlace/db",
+    "db:migrate": "npm run migrate -w @moonlace/db",
+    "db:seed": "npm run seed -w @moonlace/db",
+    "db:push": "npm run push -w @moonlace/db",
+    "dev:api": "npm run dev -w @moonlace/api",
+    "dev:web": "npm run dev -w @moonlace/web"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2"
+  }
+}
