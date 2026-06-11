@@ -18,15 +18,20 @@ interface Post {
   reactions: { userId: string }[];
 }
 
+interface Topic {
+  title: string;
+  author: { nickname: string };
+}
+
 export default function TopicPage() {
   const { categorySlug, topicSlug } = useParams<{ categorySlug: string; topicSlug: string }>();
   const { user } = useAuth();
-  const [topic, setTopic] = useState<{ title: string; author: { nickname: string } } | null>(null);
+  const [topic, setTopic] = useState<Topic | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [reply, setReply] = useState("");
 
   useEffect(() => {
-    api(`/forum/topics/${categorySlug}/${topicSlug}`).then(setTopic).catch(console.error);
+    api<Topic>(`/forum/topics/${categorySlug}/${topicSlug}`).then(setTopic).catch(console.error);
     api<{ posts: Post[] }>(`/forum/topics/${categorySlug}/${topicSlug}/posts`).then((r) => setPosts(r.posts)).catch(console.error);
   }, [categorySlug, topicSlug]);
 

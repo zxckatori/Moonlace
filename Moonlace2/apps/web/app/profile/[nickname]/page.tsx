@@ -13,6 +13,31 @@ import { useAuth } from "@/lib/store";
 
 type Tab = "wall" | "gallery" | "audio" | "guestbook";
 
+interface WallPost {
+  id: string;
+  content: string;
+  author: { nickname: string };
+  createdAt: string;
+}
+
+interface GalleryItem {
+  id: string;
+  url: string;
+  type: string;
+}
+
+interface AudioData {
+  current?: { trackTitle: string; artist?: string };
+  history: { trackTitle: string; artist?: string; createdAt: string }[];
+}
+
+interface GuestbookEntry {
+  id: string;
+  content: string;
+  author: { nickname: string };
+  createdAt: string;
+}
+
 interface ProfileData {
   id: string;
   nickname: string;
@@ -52,10 +77,10 @@ export default function ProfilePage() {
   const { user } = useAuth();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [tab, setTab] = useState<Tab>("wall");
-  const [wall, setWall] = useState<unknown[]>([]);
-  const [gallery, setGallery] = useState<unknown[]>([]);
-  const [audio, setAudio] = useState<{ current?: { trackTitle: string; artist?: string }; history: unknown[] } | null>(null);
-  const [guestbook, setGuestbook] = useState<unknown[]>([]);
+  const [wall, setWall] = useState<WallPost[]>([]);
+  const [gallery, setGallery] = useState<GalleryItem[]>([]);
+  const [audio, setAudio] = useState<AudioData | null>(null);
+  const [guestbook, setGuestbook] = useState<GuestbookEntry[]>([]);
   const [wallPost, setWallPost] = useState("");
   const [gbText, setGbText] = useState("");
 
@@ -64,10 +89,10 @@ export default function ProfilePage() {
   }, [nickname]);
 
   useEffect(() => {
-    if (tab === "wall") api(`/profiles/${nickname}/wall`).then(setWall).catch(console.error);
-    if (tab === "gallery") api(`/profiles/${nickname}/gallery`).then(setGallery).catch(console.error);
-    if (tab === "audio") api(`/audio/${nickname}`).then(setAudio).catch(console.error);
-    if (tab === "guestbook") api(`/profiles/${nickname}/guestbook`).then(setGuestbook).catch(console.error);
+    if (tab === "wall") api<WallPost[]>(`/profiles/${nickname}/wall`).then(setWall).catch(console.error);
+    if (tab === "gallery") api<GalleryItem[]>(`/profiles/${nickname}/gallery`).then(setGallery).catch(console.error);
+    if (tab === "audio") api<AudioData>(`/audio/${nickname}`).then(setAudio).catch(console.error);
+    if (tab === "guestbook") api<GuestbookEntry[]>(`/profiles/${nickname}/guestbook`).then(setGuestbook).catch(console.error);
   }, [tab, nickname]);
 
   if (!profile) return <p style={{ color: "var(--text-muted)" }}>Загрузка сигнала...</p>;
@@ -184,11 +209,11 @@ export default function ProfilePage() {
               <Button onClick={async () => {
                 await api("/profiles/me/wall", { method: "POST", body: JSON.stringify({ content: wallPost }) });
                 setWallPost("");
-                api(`/profiles/${nickname}/wall`).then(setWall);
+                api<WallPost[]>(`/profiles/${nickname}/wall`).then(setWall);
               }}>Опубликовать</Button>
             </Card>
           )}
-          {(wall as { id: string; content: string; author: { nickname: string }; createdAt: string }[]).map((p) => (
+          {wall.map((p) => (
             <Card key={p.id} style={{ marginBottom: "8px" }}>
               <p>{p.content}</p>
               <time style={{ fontSize: "11px", color: "var(--text-muted)" }}>{new Date(p.createdAt).toLocaleString("ru-RU")}</time>
@@ -199,7 +224,7 @@ export default function ProfilePage() {
 
       {tab === "gallery" && (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: "12px" }}>
-          {(gallery as { id: string; url: string; type: string }[]).map((item) => (
+          {gallery.map((item) => (
             <div key={item.id} style={{ border: "1px solid var(--border)", borderRadius: "4px", overflow: "hidden" }}>
               {item.type === "VIDEO" ? (
                 <video src={item.url} controls style={{ width: "100%" }} />
@@ -224,7 +249,7 @@ export default function ProfilePage() {
             </Card>
           )}
           <h3 style={{ fontFamily: "var(--font-terminal)", marginBottom: "8px" }}>История</h3>
-          {(audio.history as { trackTitle: string; artist?: string; createdAt: string }[]).map((e, i) => (
+          {audio.history.map((e, i) => (
             <div key={i} style={{ fontSize: "13px", color: "var(--text-muted)", marginBottom: "4px" }}>
               {e.artist ? `${e.artist} — ` : ""}{e.trackTitle}
             </div>
@@ -240,11 +265,11 @@ export default function ProfilePage() {
               <Button style={{ marginTop: "8px" }} onClick={async () => {
                 await api(`/profiles/${nickname}/guestbook`, { method: "POST", body: JSON.stringify({ content: gbText }) });
                 setGbText("");
-                api(`/profiles/${nickname}/guestbook`).then(setGuestbook);
+                api<GuestbookEntry[]>(`/profiles/${nickname}/guestbook`).then(setGuestbook);
               }}>Написать</Button>
             </Card>
           )}
-          {(guestbook as { id: string; content: string; author: { nickname: string }; createdAt: string }[]).map((e) => (
+          {guestbook.map((e) => (
             <Card key={e.id} style={{ marginBottom: "8px" }}>
               <strong>{e.author.nickname}</strong>
               <p>{e.content}</p>

@@ -36,4 +36,4 @@ await esbuild.build({
   ],
 });
 
-console.log("API built ? dist/index.js");
+console.log("API built → dist/index.js");
