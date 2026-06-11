@@ -35,12 +35,20 @@ export async function api<T>(
     ...(options.headers as Record<string, string>),
   };
   if (token) headers.Authorization = `Bearer ${token}`;
-  if (!(options.body instanceof FormData)) {
+
+  const method = (options.method || "GET").toUpperCase();
+  let body = options.body;
+  if ((method === "POST" || method === "PUT" || method === "PATCH") && (body === undefined || body === null)) {
+    body = "{}";
+  }
+
+  if (!(body instanceof FormData)) {
     headers["Content-Type"] = headers["Content-Type"] || "application/json";
   }
 
   const res = await fetch(apiUrl(path), {
     ...options,
+    body,
     headers,
     credentials: "include",
   });

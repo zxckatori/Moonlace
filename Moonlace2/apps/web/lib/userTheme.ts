@@ -1,6 +1,7 @@
 export interface UserThemeData {
   accentColor: string;
   fontFamily: string;
+  fontUrl?: string | null;
   backgroundColor?: string | null;
   backgroundUrl?: string | null;
   scanlineIntensity?: number;
@@ -26,15 +27,43 @@ const USER_THEME_VARS = [
   "--scanline-opacity",
 ] as const;
 
+const FONT_STYLE_ID = "moonlace-user-theme-font";
+
+function injectFontFace(family: string, url: string) {
+  let el = document.getElementById(FONT_STYLE_ID) as HTMLStyleElement | null;
+  if (!el) {
+    el = document.createElement("style");
+    el.id = FONT_STYLE_ID;
+    document.head.appendChild(el);
+  }
+  const safeFamily = family.replace(/'/g, "\\'");
+  el.textContent = `@font-face{font-family:'${safeFamily}';src:url('${url}');font-display:swap;}`;
+}
+
+function removeFontFace() {
+  document.getElementById(FONT_STYLE_ID)?.remove();
+}
+
 export function applyUserTheme(theme: UserThemeData | null) {
   const root = document.documentElement;
   if (!theme) {
     USER_THEME_VARS.forEach((v) => root.style.removeProperty(v));
     document.body.style.removeProperty("background-image");
+    document.body.style.removeProperty("background-size");
+    document.body.style.removeProperty("background-attachment");
+    removeFontFace();
     return;
   }
 
-  const font = FONT_MAP[theme.fontFamily] || FONT_MAP["Space Mono"];
+  let font: string;
+  if (theme.fontUrl) {
+    injectFontFace(theme.fontFamily, theme.fontUrl);
+    font = `'${theme.fontFamily}', monospace`;
+  } else {
+    removeFontFace();
+    font = FONT_MAP[theme.fontFamily] || `"${theme.fontFamily}", monospace`;
+  }
+
   root.style.setProperty("--neon-purple", theme.accentColor);
   root.style.setProperty("--neon-cyan", theme.accentColor);
   root.style.setProperty("--neon-magenta", theme.accentColor);
@@ -58,8 +87,7 @@ export function applyUserTheme(theme: UserThemeData | null) {
     document.body.style.removeProperty("background-attachment");
   }
 
-  const scanlines = document.body.classList.contains("scanlines");
-  if (theme.scanlineIntensity !== undefined && scanlines) {
+  if (theme.scanlineIntensity !== undefined) {
     root.style.setProperty("--scanline-opacity", String(theme.scanlineIntensity));
   }
 }

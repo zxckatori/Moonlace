@@ -5,7 +5,7 @@ export const createThemeSchema = z.object({
   isPublic: z.boolean().default(false),
   backgroundColor: z.string().optional(),
   accentColor: z.string().default("#b026ff"),
-  fontFamily: z.enum(["Space Mono", "VT323", "Orbitron", "Cinzel"]).default("Space Mono"),
+  fontFamily: z.string().min(1).max(64).default("Space Mono"),
   scanlineIntensity: z.number().min(0).max(0.2).default(0.04),
 });
 

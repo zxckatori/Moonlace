@@ -27,6 +27,15 @@ const MIME_MAP: Record<string, string> = {
   "audio/flac": "flac",
   "video/mp4": "mp4",
   "video/webm": "webm",
+  "font/woff": "woff",
+  "font/woff2": "woff2",
+  "font/ttf": "ttf",
+  "font/otf": "otf",
+  "application/font-woff": "woff",
+  "application/font-woff2": "woff2",
+  "application/x-font-ttf": "ttf",
+  "application/x-font-opentype": "otf",
+  "application/octet-stream": "bin",
 };
 
 const SIZE_LIMITS: Record<string, number> = {
@@ -36,6 +45,7 @@ const SIZE_LIMITS: Record<string, number> = {
   audio: 20 * 1024 * 1024,
   video: 100 * 1024 * 1024,
   background: 5 * 1024 * 1024,
+  font: 2 * 1024 * 1024,
 };
 
 let bucketReady = false;
@@ -66,7 +76,7 @@ export async function uploadFile(
   }
 
   if (!process.env.S3_ENDPOINT) {
-    if (category === "avatar" || category === "background") {
+    if (category === "avatar" || category === "background" || category === "font") {
       const base64 = buffer.toString("base64");
       return `data:${mimeType};base64,${base64}`;
     }

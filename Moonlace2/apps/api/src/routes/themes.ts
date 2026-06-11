@@ -96,6 +96,44 @@ export async function themeRoutes(app: FastifyInstance) {
     });
   });
 
+  app.post("/v1/themes/:id/font", { preHandler: [app.authenticate] }, async (req) => {
+    const { userId } = req.user as { userId: string };
+    const { id } = req.params as { id: string };
+
+    const theme = await prisma.userTheme.findUnique({ where: { id } });
+    if (!theme || theme.authorId !== userId) throw app.httpErrors.forbidden();
+
+    const data = await req.file();
+    if (!data) throw app.httpErrors.badRequest("Файл не выбран");
+
+    const allowed = [
+      "font/woff",
+      "font/woff2",
+      "font/ttf",
+      "font/otf",
+      "application/font-woff",
+      "application/font-woff2",
+      "application/x-font-ttf",
+      "application/x-font-opentype",
+      "application/octet-stream",
+    ];
+    if (!allowed.includes(data.mimetype)) {
+      throw app.httpErrors.badRequest("Формат: .woff, .woff2, .ttf или .otf");
+    }
+
+    const buffer = await data.toBuffer();
+    const url = await uploadFile(buffer, data.mimetype, "font", data.filename);
+    const { fontName: qName } = req.query as { fontName?: string };
+    const fontName = qName?.trim()
+      || data.filename.replace(/\.[^.]+$/, "")
+      || `CustomFont-${id.slice(0, 6)}`;
+
+    return prisma.userTheme.update({
+      where: { id },
+      data: { fontUrl: url, fontFamily: fontName.slice(0, 64) },
+    });
+  });
+
   app.post("/v1/themes/:id/background", { preHandler: [app.authenticate] }, async (req) => {
     const { userId } = req.user as { userId: string };
     const { id } = req.params as { id: string };

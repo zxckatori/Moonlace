@@ -223,6 +223,7 @@ model UserTheme {
   backgroundColor   String?
   accentColor       String  @default("#b026ff")
   fontFamily        String  @default("Space Mono")
+  fontUrl           String?
   scanlineIntensity Float   @default(0.04)
   usageCount        Int     @default(0)
   rating            Float   @default(0)
