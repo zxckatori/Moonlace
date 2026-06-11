@@ -7,16 +7,19 @@
   ],
   "scripts": {
     "dev": "turbo dev",
-    "build:api": "npm run build -w @moonlace/api",
+    "build": "turbo build",
     "db:generate": "npm run generate -w @moonlace/db",
     "db:migrate": "npm run migrate -w @moonlace/db",
     "db:seed": "npm run seed -w @moonlace/db",
     "db:push": "npm run push -w @moonlace/db",
     "dev:api": "npm run dev -w @moonlace/api",
-    "dev:web": "npm run dev -w @moonlace/web"
+    "dev:web": "npm run dev -w @moonlace/web",
+    "build:api": "node apps/api/build.mjs"
+  },
+  "dependencies": {
+    "esbuild": "^0.24.2"
   },
   "devDependencies": {
-    "esbuild": "^0.24.2",
     "turbo": "^2.3.3",
     "typescript": "^5.7.2"
   }

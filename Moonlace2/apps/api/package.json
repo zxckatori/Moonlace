@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
-    "start": "tsx src/index.ts"
+    "build": "node build.mjs",
+    "start": "node dist/index.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.712.0",
@@ -21,12 +21,15 @@
     "argon2": "^0.41.1",
     "dotenv": "^16.4.7",
     "fastify": "^5.2.0",
-    "tsx": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
     "ioredis": "^5.4.2",
     "socket.io": "^4.8.1"
   },
   "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.7",
     "@types/node": "^22.10.2",
+    "esbuild": "^0.24.2",
+    "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   }
 }

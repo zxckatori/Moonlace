@@ -1,4 +1,4 @@
-# Render.com — Moonlace API
+# Render.com - Moonlace API
 # Blueprint Path: Moonlace2/render.yaml
 
 services:
@@ -7,7 +7,7 @@ services:
     runtime: node
     plan: free
     rootDir: Moonlace2
-    buildCommand: NPM_CONFIG_PRODUCTION=false npm install && npm run db:generate && npm run db:push && npm run db:seed && npm run build:api
+    buildCommand: NPM_CONFIG_PRODUCTION=false npm install && npm run db:generate && npm run db:push && npm run db:seed && mkdir -p apps/api/dist && npx esbuild apps/api/src/index.ts --bundle --platform=node --target=node20 --outfile=apps/api/dist/index.js --format=cjs --packages=external
     startCommand: node apps/api/dist/index.js
     healthCheckPath: /v1/health
     envVars:

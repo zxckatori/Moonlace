@@ -42,7 +42,7 @@ export async function userRoutes(app: FastifyInstance) {
     });
     if (!user) throw app.httpErrors.notFound();
 
-    const privacy = (user.profile?.privacySettings || {}) as PrivacySettings;
+    const privacy = (user.profile?.privacySettings || {}) as unknown as PrivacySettings;
     const { passwordHash: _, login, email, ...safe } = user;
 
     return {

@@ -45,10 +45,11 @@ async function main() {
     timeWindow: "1 minute",
   });
 
-  app.setErrorHandler((error, _req, reply) => {
-    const status = error.statusCode || 500;
+  app.setErrorHandler((error: unknown, _req, reply) => {
+    const err = error as { statusCode?: number; message?: string };
+    const status = err.statusCode || 500;
     reply.status(status).send({
-      error: error.message || "Internal Server Error",
+      error: err.message || "Internal Server Error",
     });
   });
 

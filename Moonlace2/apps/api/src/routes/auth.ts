@@ -1,9 +1,18 @@
 import { FastifyInstance } from "fastify";
 import * as argon2 from "argon2";
+import jwt from "jsonwebtoken";
 import { prisma } from "@moonlace/db";
 import { registerSchema, loginSchema } from "@moonlace/shared";
 import { getRedis } from "../lib/redis";
 import { config } from "../config";
+
+function signRefreshToken(userId: string): string {
+  return jwt.sign({ userId, type: "refresh" }, config.jwtRefreshSecret, { expiresIn: "7d" });
+}
+
+function verifyRefreshToken(token: string): { userId: string } {
+  return jwt.verify(token, config.jwtRefreshSecret) as { userId: string };
+}
 
 export async function authRoutes(app: FastifyInstance) {
   app.post("/v1/auth/register", async (req, reply) => {
@@ -34,10 +43,7 @@ export async function authRoutes(app: FastifyInstance) {
 
     const warning = login === nickname ? "LOGIN_NICKNAME_MATCH" : undefined;
     const accessToken = app.jwt.sign({ userId: user.id }, { expiresIn: "15m" });
-    const refreshToken = app.jwt.sign(
-      { userId: user.id, type: "refresh" },
-      { secret: config.jwtRefreshSecret, expiresIn: "7d" }
-    );
+    const refreshToken = signRefreshToken(user.id);
 
     const redis = getRedis();
     await redis.setex(`refresh:${user.id}`, 7 * 24 * 3600, refreshToken);
@@ -66,10 +72,7 @@ export async function authRoutes(app: FastifyInstance) {
     }
 
     const accessToken = app.jwt.sign({ userId: user.id }, { expiresIn: "15m" });
-    const refreshToken = app.jwt.sign(
-      { userId: user.id, type: "refresh" },
-      { secret: config.jwtRefreshSecret, expiresIn: "7d" }
-    );
+    const refreshToken = signRefreshToken(user.id);
 
     const redis = getRedis();
     await redis.setex(`refresh:${user.id}`, 7 * 24 * 3600, refreshToken);
@@ -99,9 +102,7 @@ export async function authRoutes(app: FastifyInstance) {
     if (!refreshToken) return reply.status(401).send({ error: "NO_REFRESH_TOKEN" });
 
     try {
-      const payload = app.jwt.verify<{ userId: string; type: string }>(refreshToken, {
-        secret: config.jwtRefreshSecret,
-      });
+      const payload = verifyRefreshToken(refreshToken);
       const redis = getRedis();
       const stored = await redis.get(`refresh:${payload.userId}`);
       if (stored !== refreshToken) {

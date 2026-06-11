@@ -1,4 +1,4 @@
-import { prisma, FeedEventType } from "@moonlace/db";
+import { prisma, FeedEventType, Prisma } from "@moonlace/db";
 import type { Server } from "socket.io";
 
 export async function createFeedEvent(
@@ -8,7 +8,7 @@ export async function createFeedEvent(
   io?: Server
 ) {
   const event = await prisma.feedEvent.create({
-    data: { type, userId, payload },
+    data: { type, userId, payload: payload as Prisma.InputJsonValue },
     include: {
       user: { select: { id: true, nickname: true, avatarUrl: true } },
     },
