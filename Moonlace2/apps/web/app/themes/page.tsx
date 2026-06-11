@@ -150,7 +150,7 @@ export default function ThemesPage() {
     runAction(async () => {
       try {
         await resetToBase();
-        showToast("Базовая тема восстановлена");
+        showToast("Базовая тема Синтвейв восстановлена");
         loadThemes();
       } catch (err) {
         showToast(err instanceof Error ? err.message : "Ошибка", "error");
