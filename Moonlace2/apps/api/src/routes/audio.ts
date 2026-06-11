@@ -67,7 +67,12 @@ export async function audioRoutes(app: FastifyInstance) {
       }),
     ]);
 
-    return { current, history, favorites, uploads };
+    return {
+      current,
+      history: history ?? [],
+      favorites: favorites ?? [],
+      uploads: uploads ?? [],
+    };
   });
 
   app.post("/v1/audio/entries/:id/favorite", { preHandler: [app.authenticate] }, async (req) => {

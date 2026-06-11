@@ -47,6 +47,20 @@ interface AudioData {
   uploads: GalleryItem[];
 }
 
+function emptyAudio(): AudioData {
+  return { current: null, history: [], favorites: [], uploads: [] };
+}
+
+function normalizeAudio(raw: Partial<AudioData> | null | undefined): AudioData {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return emptyAudio();
+  return {
+    current: raw.current ?? null,
+    history: Array.isArray(raw.history) ? raw.history : [],
+    favorites: Array.isArray(raw.favorites) ? raw.favorites : [],
+    uploads: Array.isArray(raw.uploads) ? raw.uploads : [],
+  };
+}
+
 interface GuestbookEntry {
   id: string;
   content: string;
@@ -86,7 +100,10 @@ interface ProfileData {
 }
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleString("ru-RU", {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleString("ru-RU", {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -104,6 +121,7 @@ export default function ProfilePage() {
   const [wall, setWall] = useState<WallPost[]>([]);
   const [gallery, setGallery] = useState<GalleryItem[]>([]);
   const [audio, setAudio] = useState<AudioData | null>(null);
+  const [audioError, setAudioError] = useState(false);
   const [guestbook, setGuestbook] = useState<GuestbookEntry[]>([]);
   const [visits, setVisits] = useState<ProfileVisit[]>([]);
   const [wallPost, setWallPost] = useState("");
@@ -135,10 +153,15 @@ export default function ProfilePage() {
     () => api<GalleryItem[]>(`/profiles/${nickname}/gallery`).then(setGallery).catch(console.error),
     [nickname]
   );
-  const loadAudio = useCallback(
-    () => api<AudioData>(`/audio/${nickname}`).then(setAudio).catch(console.error),
-    [nickname]
-  );
+  const loadAudio = useCallback(() => {
+    setAudioError(false);
+    api<Partial<AudioData>>(`/audio/${nickname}`)
+      .then((data) => setAudio(normalizeAudio(data)))
+      .catch(() => {
+        setAudio(emptyAudio());
+        setAudioError(true);
+      });
+  }, [nickname]);
   const loadGuestbook = useCallback(() => {
     api<GuestbookEntry[]>(`/profiles/${nickname}/guestbook`).then(setGuestbook).catch(console.error);
     api<ProfileVisit[]>(`/profiles/${nickname}/visits`).then(setVisits).catch(console.error);
@@ -489,6 +512,11 @@ export default function ProfilePage() {
             <p style={{ color: "var(--text-muted)" }}>Загрузка…</p>
           ) : (
             <>
+              {audioError && (
+                <Card style={{ marginBottom: "12px" }}>
+                  <p style={{ color: "var(--text-muted)", fontSize: "13px" }}>Не удалось загрузить аудио с сервера. Показаны пустые разделы.</p>
+                </Card>
+              )}
               {isOwner && (
                 <Card style={{ marginBottom: "12px" }}>
                   <p style={{ fontSize: "13px", color: "var(--text-muted)", marginBottom: "8px" }}>Загрузить аудиофайл</p>
@@ -527,28 +555,29 @@ export default function ProfilePage() {
                   </label>
                 </Card>
               )}
-              {audio.current && (
+              {audio.current?.trackTitle && (
                 <Card style={{ marginBottom: "12px" }}>
                   <Badge variant="live">СЕЙЧАС СЛУШАЕТ</Badge>
                   <p style={{ marginTop: "8px" }}>
-                    {audio.current.artist ? `${audio.current.artist} — ` : ""}{audio.current.trackTitle}
+                    {audio.current.artist ? `${audio.current.artist} — ` : ""}
+                    {audio.current.trackTitle}
                   </p>
                 </Card>
               )}
-              {(audio.uploads ?? []).length > 0 && (
+              {audio.uploads.length > 0 && (
                 <>
                   <h3 style={{ fontFamily: "var(--font-terminal)", marginBottom: "8px", color: "var(--neon-cyan)" }}>Загруженные</h3>
-                  {(audio.uploads ?? []).map((u) => (
+                  {audio.uploads.map((u) => (
                     <Card key={u.id} style={{ marginBottom: "8px" }}>
                       <audio src={u.url} controls style={{ width: "100%" }} />
                     </Card>
                   ))}
                 </>
               )}
-              {(audio.favorites ?? []).length > 0 && (
+              {audio.favorites.length > 0 && (
                 <>
                   <h3 style={{ fontFamily: "var(--font-terminal)", margin: "16px 0 8px", color: "var(--neon-purple)" }}>Избранное</h3>
-                  {(audio.favorites ?? []).map((e) => (
+                  {audio.favorites.map((e) => (
                     <div key={e.id} style={{ fontSize: "13px", marginBottom: "6px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <span>{e.artist ? `${e.artist} — ` : ""}{e.trackTitle}</span>
                       <span style={{ color: "var(--text-muted)", fontSize: "11px" }}>{formatDate(e.createdAt)}</span>
@@ -557,10 +586,10 @@ export default function ProfilePage() {
                 </>
               )}
               <h3 style={{ fontFamily: "var(--font-terminal)", margin: "16px 0 8px" }}>История прослушивания</h3>
-              {(audio.history ?? []).length === 0 ? (
+              {audio.history.length === 0 ? (
                 <p style={{ color: "var(--text-muted)", fontSize: "13px" }}>История пуста</p>
               ) : (
-                (audio.history ?? []).map((e) => (
+                audio.history.map((e) => (
                   <div key={e.id} style={{ fontSize: "13px", marginBottom: "8px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                     <span style={{ color: "var(--text-muted)" }}>
                       {e.artist ? `${e.artist} — ` : ""}{e.trackTitle}

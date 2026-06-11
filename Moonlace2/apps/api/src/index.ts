@@ -36,6 +36,7 @@ async function main() {
   await app.register(cors, {
     origin: config.webUrl,
     credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   });
   await app.register(cookie);
   await app.register(jwt, { secret: config.jwtSecret });
