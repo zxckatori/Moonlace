@@ -1,12 +1,13 @@
-# Render.com — бесплатный хостинг API Moonlace
-# GitHub: zxckatori/Moonlace → Blueprint Path: Moonlace2/render.yaml
+# Render.com — Moonlace API
+# Blueprint Path: Moonlace2/render.yaml
+
 services:
   - type: web
     name: moonlace-api
     runtime: node
     plan: free
     rootDir: Moonlace2
-    buildCommand: npm install && npm run db:generate && npm run db:push && npm run db:seed && npm run build -w @moonlace/api
+    buildCommand: npm install && npm run db:generate && npm run db:push && npm run db:seed
     startCommand: npm run start -w @moonlace/api
     healthCheckPath: /v1/health
     envVars:
