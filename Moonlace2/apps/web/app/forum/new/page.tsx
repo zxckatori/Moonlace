@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/lib/store";
+import { useSubmitLock } from "@/lib/useSubmitLock";
 
 interface Category {
   slug: string;
@@ -21,19 +22,21 @@ function NewTopicForm() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [categorySlug, setCategorySlug] = useState(searchParams.get("category") || "");
+  const { locked: submitLocked, run: runSubmit } = useSubmitLock();
 
   useEffect(() => {
     if (!user) router.push("/login");
     api<Category[]>("/forum/categories").then(setCategories).catch(console.error);
   }, [user, router]);
 
-  const submit = async () => {
-    const topic = await api<{ slug: string; category: { slug: string } }>("/forum/topics", {
-      method: "POST",
-      body: JSON.stringify({ title, content, categorySlug }),
+  const submit = () =>
+    runSubmit(async () => {
+      const topic = await api<{ slug: string; category: { slug: string } }>("/forum/topics", {
+        method: "POST",
+        body: JSON.stringify({ title, content, categorySlug }),
+      });
+      router.push(`/forum/${topic.category.slug}/${topic.slug}`);
     });
-    router.push(`/forum/${topic.category.slug}/${topic.slug}`);
-  };
 
   return (
     <Card>
@@ -57,8 +60,8 @@ function NewTopicForm() {
           rows={8}
           style={{ padding: "12px", background: "var(--abyss)", border: "1px solid var(--border)", color: "var(--text)" }}
         />
-        <Button onClick={submit} disabled={!title || !content || !categorySlug}>
-          Создать
+        <Button onClick={submit} disabled={!title || !content || !categorySlug || submitLocked}>
+          {submitLocked ? "Создание…" : "Создать"}
         </Button>
       </div>
     </Card>

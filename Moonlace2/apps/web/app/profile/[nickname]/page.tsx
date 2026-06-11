@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/Input";
 import { LiveWidget } from "@/components/stream/LiveWidget";
 import { useAuth } from "@/lib/store";
 import { useToast } from "@/components/providers/ToastProvider";
+import { useSubmitLock } from "@/lib/useSubmitLock";
 
 type Tab = "wall" | "gallery" | "audio" | "guestbook";
 
@@ -111,6 +112,8 @@ export default function ProfilePage() {
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [classPopId, setClassPopId] = useState<string | null>(null);
   const [uploadingGallery, setUploadingGallery] = useState(false);
+  const { locked: wallLocked, run: runWallPost } = useSubmitLock();
+  const { locked: gbLocked, run: runGuestbook } = useSubmitLock();
 
   const isOwner = user?.nickname === nickname;
 
@@ -316,29 +319,28 @@ export default function ProfilePage() {
                 style={{ width: "100%", background: "var(--abyss)", border: "1px solid var(--border)", color: "var(--text)", padding: "8px", marginBottom: "8px" }}
               />
               <Button
-                disabled={!wallPost.trim() || busy === "wall-post"}
-                onClick={async () => {
-                  setBusy("wall-post");
-                  try {
-                    await api("/profiles/me/wall", { method: "POST", body: JSON.stringify({ content: wallPost }) });
-                    setWallPost("");
-                    showToast("Опубликовано");
-                    loadWall();
-                  } catch (err) {
-                    showToast(err instanceof Error ? err.message : "Ошибка", "error");
-                  } finally {
-                    setBusy(null);
-                  }
-                }}
+                disabled={!wallPost.trim() || wallLocked}
+                onClick={() =>
+                  runWallPost(async () => {
+                    try {
+                      await api("/profiles/me/wall", { method: "POST", body: JSON.stringify({ content: wallPost }) });
+                      setWallPost("");
+                      showToast("Опубликовано");
+                      loadWall();
+                    } catch (err) {
+                      showToast(err instanceof Error ? err.message : "Ошибка", "error");
+                    }
+                  })
+                }
               >
-                Опубликовать
+                {wallLocked ? "Публикация…" : "Опубликовать"}
               </Button>
             </Card>
           )}
           {wall.length === 0 && <Card><p style={{ color: "var(--text-muted)" }}>На стене пока пусто</p></Card>}
           {wall.map((p) => {
-            const classCount = p.reactions.filter((r) => r.type === "class").length;
-            const userReacted = user && p.reactions.some((r) => r.userId === user.id && r.type === "class");
+            const classCount = (p.reactions ?? []).filter((r) => r.type === "class").length;
+            const userReacted = user && (p.reactions ?? []).some((r) => r.userId === user.id && r.type === "class");
             const canDelete = isOwner && (user?.id === p.author.id || user?.nickname === p.author.nickname);
             return (
               <Card key={p.id} style={{ marginBottom: "8px" }} className={removingId === p.id ? "post-removing" : undefined}>
@@ -533,20 +535,20 @@ export default function ProfilePage() {
                   </p>
                 </Card>
               )}
-              {audio.uploads.length > 0 && (
+              {(audio.uploads ?? []).length > 0 && (
                 <>
                   <h3 style={{ fontFamily: "var(--font-terminal)", marginBottom: "8px", color: "var(--neon-cyan)" }}>Загруженные</h3>
-                  {audio.uploads.map((u) => (
+                  {(audio.uploads ?? []).map((u) => (
                     <Card key={u.id} style={{ marginBottom: "8px" }}>
                       <audio src={u.url} controls style={{ width: "100%" }} />
                     </Card>
                   ))}
                 </>
               )}
-              {audio.favorites.length > 0 && (
+              {(audio.favorites ?? []).length > 0 && (
                 <>
                   <h3 style={{ fontFamily: "var(--font-terminal)", margin: "16px 0 8px", color: "var(--neon-purple)" }}>Избранное</h3>
-                  {audio.favorites.map((e) => (
+                  {(audio.favorites ?? []).map((e) => (
                     <div key={e.id} style={{ fontSize: "13px", marginBottom: "6px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                       <span>{e.artist ? `${e.artist} — ` : ""}{e.trackTitle}</span>
                       <span style={{ color: "var(--text-muted)", fontSize: "11px" }}>{formatDate(e.createdAt)}</span>
@@ -555,10 +557,10 @@ export default function ProfilePage() {
                 </>
               )}
               <h3 style={{ fontFamily: "var(--font-terminal)", margin: "16px 0 8px" }}>История прослушивания</h3>
-              {audio.history.length === 0 ? (
+              {(audio.history ?? []).length === 0 ? (
                 <p style={{ color: "var(--text-muted)", fontSize: "13px" }}>История пуста</p>
               ) : (
-                audio.history.map((e) => (
+                (audio.history ?? []).map((e) => (
                   <div key={e.id} style={{ fontSize: "13px", marginBottom: "8px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                     <span style={{ color: "var(--text-muted)" }}>
                       {e.artist ? `${e.artist} — ` : ""}{e.trackTitle}
@@ -616,19 +618,21 @@ export default function ProfilePage() {
               <Input placeholder="Запись в гостевую..." value={gbText} onChange={(e) => setGbText(e.target.value)} />
               <Button
                 style={{ marginTop: "8px" }}
-                disabled={!gbText.trim()}
-                onClick={async () => {
-                  try {
-                    await api(`/profiles/${nickname}/guestbook`, { method: "POST", body: JSON.stringify({ content: gbText }) });
-                    setGbText("");
-                    showToast("Запись добавлена");
-                    loadGuestbook();
-                  } catch (err) {
-                    showToast(err instanceof Error ? err.message : "Ошибка", "error");
-                  }
-                }}
+                disabled={!gbText.trim() || gbLocked}
+                onClick={() =>
+                  runGuestbook(async () => {
+                    try {
+                      await api(`/profiles/${nickname}/guestbook`, { method: "POST", body: JSON.stringify({ content: gbText }) });
+                      setGbText("");
+                      showToast("Запись добавлена");
+                      loadGuestbook();
+                    } catch (err) {
+                      showToast(err instanceof Error ? err.message : "Ошибка", "error");
+                    }
+                  })
+                }
               >
-                Написать
+                {gbLocked ? "Отправка…" : "Написать"}
               </Button>
             </Card>
           )}

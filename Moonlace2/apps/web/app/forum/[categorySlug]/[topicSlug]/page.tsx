@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/Card";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/lib/store";
+import { useSubmitLock } from "@/lib/useSubmitLock";
 
 interface Post {
   id: string;
@@ -29,22 +30,24 @@ export default function TopicPage() {
   const [topic, setTopic] = useState<Topic | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [reply, setReply] = useState("");
+  const { locked: replyLocked, run: runReply } = useSubmitLock();
 
   useEffect(() => {
     api<Topic>(`/forum/topics/${categorySlug}/${topicSlug}`).then(setTopic).catch(console.error);
     api<{ posts: Post[] }>(`/forum/topics/${categorySlug}/${topicSlug}/posts`).then((r) => setPosts(r.posts)).catch(console.error);
   }, [categorySlug, topicSlug]);
 
-  const submitReply = async () => {
-    if (!reply.trim()) return;
-    await api("/forum/posts", {
-      method: "POST",
-      body: JSON.stringify({ content: reply, topicSlug, categorySlug }),
+  const submitReply = () =>
+    runReply(async () => {
+      if (!reply.trim()) return;
+      await api("/forum/posts", {
+        method: "POST",
+        body: JSON.stringify({ content: reply, topicSlug, categorySlug }),
+      });
+      setReply("");
+      const r = await api<{ posts: Post[] }>(`/forum/topics/${categorySlug}/${topicSlug}/posts`);
+      setPosts(r.posts);
     });
-    setReply("");
-    const r = await api<{ posts: Post[] }>(`/forum/topics/${categorySlug}/${topicSlug}/posts`);
-    setPosts(r.posts);
-  };
 
   const toggleLike = async (postId: string) => {
     await api(`/forum/posts/${postId}/react`, { method: "POST" });
@@ -112,7 +115,9 @@ export default function TopicPage() {
               resize: "vertical",
             }}
           />
-          <Button onClick={submitReply}>Ответить</Button>
+          <Button onClick={submitReply} disabled={replyLocked || !reply.trim()}>
+            {replyLocked ? "Отправка…" : "Ответить"}
+          </Button>
         </Card>
       )}
     </div>

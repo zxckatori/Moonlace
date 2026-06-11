@@ -40,6 +40,30 @@ export async function themeRoutes(app: FastifyInstance) {
     });
   });
 
+  app.post("/v1/themes/reset", { preHandler: [app.authenticate] }, async (req) => {
+    const { userId } = req.user as { userId: string };
+    await prisma.profile.updateMany({
+      where: { userId },
+      data: { activeThemeId: null },
+    });
+    return { ok: true };
+  });
+
+  app.delete("/v1/themes/:id", { preHandler: [app.authenticate] }, async (req) => {
+    const { userId } = req.user as { userId: string };
+    const { id } = req.params as { id: string };
+
+    const theme = await prisma.userTheme.findUnique({ where: { id } });
+    if (!theme || theme.authorId !== userId) throw app.httpErrors.forbidden();
+
+    await prisma.profile.updateMany({
+      where: { activeThemeId: id },
+      data: { activeThemeId: null },
+    });
+    await prisma.userTheme.delete({ where: { id } });
+    return { ok: true };
+  });
+
   app.post("/v1/themes/:id/apply", { preHandler: [app.authenticate] }, async (req) => {
     const { userId } = req.user as { userId: string };
     const { id } = req.params as { id: string };

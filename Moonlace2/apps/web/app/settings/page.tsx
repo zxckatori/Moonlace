@@ -9,10 +9,14 @@ import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
 import { useAuth } from "@/lib/store";
 import { useToast } from "@/components/providers/ToastProvider";
+import { useAppearance } from "@/components/providers/AppearanceProvider";
+import { ThemeSwitcher } from "@/components/ui/ThemeSwitcher";
+import Link from "next/link";
 
 export default function SettingsPage() {
   const { user, fetchMe } = useAuth();
   const { showToast } = useToast();
+  const { resetToBase, customMeta } = useAppearance();
   const router = useRouter();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null);
@@ -163,6 +167,34 @@ export default function SettingsPage() {
   return (
     <div style={{ maxWidth: "600px" }}>
       <h1 style={{ fontFamily: "var(--font-display)", marginBottom: "var(--space-4)" }}>Настройки</h1>
+
+      <Card style={{ marginBottom: "16px" }}>
+        <h2 style={{ fontFamily: "var(--font-terminal)", fontSize: "18px", marginBottom: "12px" }}>ОФОРМЛЕНИЕ САЙТА</h2>
+        <p style={{ fontSize: "13px", color: "var(--text-muted)", marginBottom: "12px" }}>
+          Синтвейв и Дарквейв — базовые темы. Кастомные темы создаются в{" "}
+          <Link href="/themes" style={{ color: "var(--neon-cyan)" }}>разделе «Темы»</Link>.
+        </p>
+        <ThemeSwitcher />
+        {customMeta && (
+          <p style={{ fontSize: "13px", marginTop: "10px", color: "var(--text-muted)" }}>
+            Кастомная тема: <strong style={{ color: "var(--neon-purple)" }}>{customMeta.name}</strong>
+          </p>
+        )}
+        <Button
+          variant="ghost"
+          style={{ marginTop: "12px" }}
+          onClick={async () => {
+            try {
+              await resetToBase();
+              showToast("Базовая тема Синтвейв восстановлена");
+            } catch (err) {
+              showToast(err instanceof Error ? err.message : "Ошибка", "error");
+            }
+          }}
+        >
+          Вернуть базовую тему (Синтвейв)
+        </Button>
+      </Card>
 
       <Card style={{ marginBottom: "16px" }}>
         <h2 style={{ fontFamily: "var(--font-terminal)", fontSize: "18px", marginBottom: "12px" }}>ПРОФИЛЬ</h2>

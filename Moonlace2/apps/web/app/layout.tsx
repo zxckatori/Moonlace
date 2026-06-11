@@ -5,10 +5,9 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { RightSidebar } from "@/components/layout/RightSidebar";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { AuthProvider } from "@/components/providers/AuthProvider";
-import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { AppearanceProvider } from "@/components/providers/AppearanceProvider";
 import { ThemeScript } from "@/components/providers/ThemeScript";
 import { ToastProvider } from "@/components/providers/ToastProvider";
-import { UserThemeApplier } from "@/components/providers/UserThemeApplier";
 
 export const metadata: Metadata = {
   title: "Moonlace — Signal Archive",
@@ -30,10 +29,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <a href="#main" className="skip-link">
           Перейти к контенту
         </a>
-        <ThemeProvider>
-          <ToastProvider>
+        <ToastProvider>
           <AuthProvider>
-          <UserThemeApplier />
+          <AppearanceProvider>
           <Header />
           <div
             className="main-layout"
@@ -68,9 +66,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             Moonlace · сигнал из пустоты · {new Date().getFullYear()}
           </footer>
           <BottomNav />
+          </AppearanceProvider>
           </AuthProvider>
-          </ToastProvider>
-        </ThemeProvider>
+        </ToastProvider>
       </body>
     </html>
   );

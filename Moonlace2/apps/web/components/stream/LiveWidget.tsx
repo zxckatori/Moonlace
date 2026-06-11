@@ -7,7 +7,7 @@ interface StreamData {
   title?: string | null;
   category?: string | null;
   thumbnailUrl?: string | null;
-  user: { nickname: string; avatarUrl?: string | null };
+  user?: { nickname: string; avatarUrl?: string | null };
 }
 
 export function LiveWidget({
@@ -19,9 +19,12 @@ export function LiveWidget({
   compact?: boolean;
   full?: boolean;
 }) {
+  const nickname = stream.user?.nickname ?? "stream";
+  const avatarUrl = stream.user?.avatarUrl;
+
   return (
     <Link
-      href={`/profile/${stream.user.nickname}`}
+      href={`/profile/${nickname}`}
       style={{
         display: "block",
         marginBottom: "var(--space-2)",
@@ -40,8 +43,8 @@ export function LiveWidget({
       )}
       <div style={{ padding: compact ? "8px" : "12px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
-          <Avatar url={stream.user.avatarUrl} nickname={stream.user.nickname} size={24} />
-          <span style={{ fontFamily: "var(--font-terminal)", fontSize: "16px" }}>{stream.user.nickname}</span>
+          <Avatar url={avatarUrl} nickname={nickname} size={24} />
+          <span style={{ fontFamily: "var(--font-terminal)", fontSize: "16px" }}>{nickname}</span>
           <Badge variant="live">ЭФИР</Badge>
         </div>
         {stream.title && (

@@ -65,11 +65,17 @@ export async function api<T>(
         headers.Authorization = `Bearer ${accessToken}`;
         const retry = await fetch(apiUrl(path), {
           ...options,
+          body,
           headers,
           credentials: "include",
         });
-        if (!retry.ok) throw new Error((await retry.json()).error || "Request failed");
-        return retry.json();
+        if (!retry.ok) {
+          const err = await retry.json().catch(() => ({ error: "Request failed" }));
+          throw new Error(parseApiError(err, "Request failed"));
+        }
+        const retryText = await retry.text();
+        if (!retryText) return undefined as T;
+        return JSON.parse(retryText) as T;
       }
     } catch {
       clearToken();
@@ -80,7 +86,14 @@ export async function api<T>(
     const err = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error(parseApiError(err, res.statusText || "Ошибка запроса"));
   }
-  return res.json();
+
+  const text = await res.text();
+  if (!text) return undefined as T;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return undefined as T;
+  }
 }
 
 export function getUploadUrl(path: string): string {

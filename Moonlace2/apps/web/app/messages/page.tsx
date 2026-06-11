@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/Input";
 import { useAuth } from "@/lib/store";
 import { useRouter } from "next/navigation";
 import { getSocket } from "@/lib/ws";
+import { useSubmitLock } from "@/lib/useSubmitLock";
 
 interface Conversation {
   partner: { id: string; nickname: string; avatarUrl?: string | null };
@@ -30,6 +31,7 @@ export default function MessagesPage() {
   const [activePartner, setActivePartner] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [text, setText] = useState("");
+  const { locked: sendLocked, run: runSend } = useSubmitLock();
 
   useEffect(() => {
     if (!user) { router.push("/login"); return; }
@@ -52,16 +54,17 @@ export default function MessagesPage() {
     return () => { socket.off("message:new"); };
   }, [activePartner]);
 
-  const send = async () => {
-    if (!text.trim() || !activePartner) return;
-    await api(`/messages/${activePartner}`, {
-      method: "POST",
-      body: JSON.stringify({ content: text }),
+  const send = () =>
+    runSend(async () => {
+      if (!text.trim() || !activePartner) return;
+      await api(`/messages/${activePartner}`, {
+        method: "POST",
+        body: JSON.stringify({ content: text }),
+      });
+      setText("");
+      const msgs = await api<Message[]>(`/messages/${activePartner}`);
+      setMessages(msgs);
     });
-    setText("");
-    const msgs = await api<Message[]>(`/messages/${activePartner}`);
-    setMessages(msgs);
-  };
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "240px 1fr", gap: "var(--space-3)", minHeight: "500px" }}>
@@ -114,8 +117,8 @@ export default function MessagesPage() {
               ))}
             </div>
             <div style={{ display: "flex", gap: "8px" }}>
-              <Input value={text} onChange={(e) => setText(e.target.value)} placeholder="Сообщение..." onKeyDown={(e) => e.key === "Enter" && send()} />
-              <Button onClick={send}>→</Button>
+              <Input value={text} onChange={(e) => setText(e.target.value)} placeholder="Сообщение..." onKeyDown={(e) => e.key === "Enter" && !sendLocked && send()} />
+              <Button onClick={send} disabled={sendLocked || !text.trim()}>{sendLocked ? "…" : "→"}</Button>
             </div>
           </>
         ) : (
