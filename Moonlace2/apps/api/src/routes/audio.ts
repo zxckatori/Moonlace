@@ -47,18 +47,40 @@ export async function audioRoutes(app: FastifyInstance) {
     const user = await prisma.user.findUnique({ where: { nickname } });
     if (!user) throw app.httpErrors.notFound();
 
-    const [current, history] = await Promise.all([
+    const [current, history, favorites, uploads] = await Promise.all([
       prisma.listeningEntry.findFirst({
         where: { userId: user.id, isCurrent: true },
       }),
       prisma.listeningEntry.findMany({
         where: { userId: user.id, isCurrent: false },
         orderBy: { createdAt: "desc" },
-        take: 20,
+        take: 30,
+      }),
+      prisma.listeningEntry.findMany({
+        where: { userId: user.id, isFavorite: true },
+        orderBy: { createdAt: "desc" },
+        take: 30,
+      }),
+      prisma.galleryItem.findMany({
+        where: { userId: user.id, type: "AUDIO" },
+        orderBy: { createdAt: "desc" },
       }),
     ]);
 
-    return { current, history };
+    return { current, history, favorites, uploads };
+  });
+
+  app.post("/v1/audio/entries/:id/favorite", { preHandler: [app.authenticate] }, async (req) => {
+    const { userId } = req.user as { userId: string };
+    const { id } = req.params as { id: string };
+    const entry = await prisma.listeningEntry.findUnique({ where: { id } });
+    if (!entry || entry.userId !== userId) throw app.httpErrors.forbidden();
+
+    const updated = await prisma.listeningEntry.update({
+      where: { id },
+      data: { isFavorite: !entry.isFavorite },
+    });
+    return { isFavorite: updated.isFavorite };
   });
 
   app.post("/v1/audio/share", { preHandler: [app.authenticate] }, async (req) => {

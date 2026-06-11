@@ -48,6 +48,8 @@ model User {
   reactions        PostReaction[]
   subscriptions    TopicSubscription[]
   streamStatus     StreamStatus?
+  profileVisits    ProfileVisit[] @relation("ProfileVisited")
+  visitsMade       ProfileVisit[] @relation("VisitorUser")
 }
 
 model Profile {
@@ -196,9 +198,22 @@ model ListeningEntry {
   embedUrl   String?
   isCurrent  Boolean  @default(false)
   shared     Boolean  @default(false)
+  isFavorite Boolean  @default(false)
   createdAt  DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ProfileVisit {
+  id            String   @id @default(cuid())
+  profileUserId String
+  visitorId     String
+  createdAt     DateTime @default(now())
+
+  profileUser User @relation("ProfileVisited", fields: [profileUserId], references: [id], onDelete: Cascade)
+  visitor     User @relation("VisitorUser", fields: [visitorId], references: [id], onDelete: Cascade)
+
+  @@index([profileUserId, createdAt])
 }
 
 model StreamStatus {

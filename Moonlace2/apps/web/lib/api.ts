@@ -42,7 +42,7 @@ export async function api<T>(
     body = "{}";
   }
 
-  if (!(body instanceof FormData)) {
+  if (body !== undefined && !(body instanceof FormData)) {
     headers["Content-Type"] = headers["Content-Type"] || "application/json";
   }
 

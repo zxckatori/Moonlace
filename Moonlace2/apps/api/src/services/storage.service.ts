@@ -76,7 +76,8 @@ export async function uploadFile(
   }
 
   if (!process.env.S3_ENDPOINT) {
-    if (category === "avatar" || category === "background" || category === "font") {
+    const dataUrlCategories = ["avatar", "background", "font", "image", "gif", "audio"] as const;
+    if ((dataUrlCategories as readonly string[]).includes(category)) {
       const base64 = buffer.toString("base64");
       return `data:${mimeType};base64,${base64}`;
     }

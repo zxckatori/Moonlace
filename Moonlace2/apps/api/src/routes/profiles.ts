@@ -131,6 +131,52 @@ export async function profileRoutes(app: FastifyInstance) {
     return item;
   });
 
+  app.delete("/v1/profiles/me/gallery/:itemId", { preHandler: [app.authenticate] }, async (req) => {
+    const { userId } = req.user as { userId: string };
+    const { itemId } = req.params as { itemId: string };
+    const item = await prisma.galleryItem.findUnique({ where: { id: itemId } });
+    if (!item || item.userId !== userId) throw app.httpErrors.forbidden();
+    await prisma.galleryItem.delete({ where: { id: itemId } });
+    return { ok: true };
+  });
+
+  app.post("/v1/profiles/:nickname/visit", { preHandler: [app.authenticate] }, async (req) => {
+    const { userId } = req.user as { userId: string };
+    const { nickname } = req.params as { nickname: string };
+    const profileUser = await prisma.user.findUnique({ where: { nickname } });
+    if (!profileUser || profileUser.id === userId) return { ok: true };
+
+    const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const recent = await prisma.profileVisit.findFirst({
+      where: {
+        profileUserId: profileUser.id,
+        visitorId: userId,
+        createdAt: { gte: hourAgo },
+      },
+    });
+    if (!recent) {
+      await prisma.profileVisit.create({
+        data: { profileUserId: profileUser.id, visitorId: userId },
+      });
+    }
+    return { ok: true };
+  });
+
+  app.get("/v1/profiles/:nickname/visits", async (req) => {
+    const { nickname } = req.params as { nickname: string };
+    const user = await prisma.user.findUnique({ where: { nickname } });
+    if (!user) throw app.httpErrors.notFound();
+
+    return prisma.profileVisit.findMany({
+      where: { profileUserId: user.id },
+      include: {
+        visitor: { select: { id: true, nickname: true, avatarUrl: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 50,
+    });
+  });
+
   app.post("/v1/profiles/me/wall", { preHandler: [app.authenticate] }, async (req) => {
     const { userId } = req.user as { userId: string };
     const { content } = req.body as { content: string };
