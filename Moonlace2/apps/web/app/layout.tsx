@@ -5,25 +5,35 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { RightSidebar } from "@/components/layout/RightSidebar";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { AuthProvider } from "@/components/providers/AuthProvider";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { ThemeScript } from "@/components/providers/ThemeScript";
+import { ToastProvider } from "@/components/providers/ToastProvider";
+import { UserThemeApplier } from "@/components/providers/UserThemeApplier";
 
 export const metadata: Metadata = {
   title: "Moonlace — Signal Archive",
   description: "Форум и лента активности в эстетике Synthwave / Darkwave",
   openGraph: {
     title: "Moonlace",
-    description: "Transmission from the void",
+    description: "Сигнал из пустоты",
     type: "website",
   },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ru">
+    <html lang="ru" data-theme="synthwave">
+      <head>
+        <ThemeScript />
+      </head>
       <body className="scanlines">
         <a href="#main" className="skip-link">
           Перейти к контенту
         </a>
-        <AuthProvider>
+        <ThemeProvider>
+          <ToastProvider>
+          <AuthProvider>
+          <UserThemeApplier />
           <Header />
           <div
             className="main-layout"
@@ -55,10 +65,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               fontSize: "14px",
             }}
           >
-            Moonlace · transmission from the void · {new Date().getFullYear()}
+            Moonlace · сигнал из пустоты · {new Date().getFullYear()}
           </footer>
           <BottomNav />
-        </AuthProvider>
+          </AuthProvider>
+          </ToastProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

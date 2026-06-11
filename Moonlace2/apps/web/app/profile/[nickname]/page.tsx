@@ -16,8 +16,9 @@ type Tab = "wall" | "gallery" | "audio" | "guestbook";
 interface WallPost {
   id: string;
   content: string;
-  author: { nickname: string };
+  author: { id: string; nickname: string; avatarUrl?: string | null };
   createdAt: string;
+  reactions: { id: string; userId: string; type: string; user?: { nickname: string } }[];
 }
 
 interface GalleryItem {
@@ -88,8 +89,10 @@ export default function ProfilePage() {
     api<ProfileData>(`/users/${nickname}`).then(setProfile).catch(console.error);
   }, [nickname]);
 
+  const loadWall = () => api<WallPost[]>(`/profiles/${nickname}/wall`).then(setWall).catch(console.error);
+
   useEffect(() => {
-    if (tab === "wall") api<WallPost[]>(`/profiles/${nickname}/wall`).then(setWall).catch(console.error);
+    if (tab === "wall") loadWall();
     if (tab === "gallery") api<GalleryItem[]>(`/profiles/${nickname}/gallery`).then(setGallery).catch(console.error);
     if (tab === "audio") api<AudioData>(`/audio/${nickname}`).then(setAudio).catch(console.error);
     if (tab === "guestbook") api<GuestbookEntry[]>(`/profiles/${nickname}/guestbook`).then(setGuestbook).catch(console.error);
@@ -108,6 +111,19 @@ export default function ProfilePage() {
   const mskTime = profile.profile?.timezone
     ? new Date().toLocaleString("ru-RU", { timeZone: profile.profile.timezone, hour: "2-digit", minute: "2-digit" })
     : null;
+
+  const formatPostDate = (iso: string) => {
+    const d = new Date(iso);
+    return d.toLocaleString("ru-RU", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const isOwner = user?.nickname === nickname;
 
   return (
     <div style={style}>
@@ -165,7 +181,7 @@ export default function ProfilePage() {
 
       {profile.profile?.setupPc && (
         <Card style={{ marginBottom: "var(--space-3)" }}>
-          <h3 style={{ fontFamily: "var(--font-terminal)", fontSize: "16px", color: "var(--neon-cyan)", marginBottom: "8px" }}>SETUP</h3>
+          <h3 style={{ fontFamily: "var(--font-terminal)", fontSize: "16px", color: "var(--neon-cyan)", marginBottom: "8px" }}>СЕТАП</h3>
           <div style={{ fontSize: "13px", display: "grid", gap: "4px" }}>
             {profile.profile.setupPc && <div>PC: {profile.profile.setupPc}</div>}
             {profile.profile.setupKeyboard && <div>Клавиатура: {profile.profile.setupKeyboard}</div>}
@@ -197,7 +213,7 @@ export default function ProfilePage() {
 
       {tab === "wall" && (
         <div>
-          {user?.nickname === nickname && (
+          {isOwner && (
             <Card style={{ marginBottom: "12px" }}>
               <textarea
                 value={wallPost}
@@ -209,16 +225,75 @@ export default function ProfilePage() {
               <Button onClick={async () => {
                 await api("/profiles/me/wall", { method: "POST", body: JSON.stringify({ content: wallPost }) });
                 setWallPost("");
-                api<WallPost[]>(`/profiles/${nickname}/wall`).then(setWall);
+                loadWall();
               }}>Опубликовать</Button>
             </Card>
           )}
-          {wall.map((p) => (
-            <Card key={p.id} style={{ marginBottom: "8px" }}>
-              <p>{p.content}</p>
-              <time style={{ fontSize: "11px", color: "var(--text-muted)" }}>{new Date(p.createdAt).toLocaleString("ru-RU")}</time>
-            </Card>
-          ))}
+          {wall.map((p) => {
+            const classCount = p.reactions.filter((r) => r.type === "class").length;
+            const userReacted = user && p.reactions.some((r) => r.userId === user.id && r.type === "class");
+            return (
+              <Card key={p.id} style={{ marginBottom: "8px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "8px" }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
+                      <Avatar url={p.author.avatarUrl} nickname={p.author.nickname} size={28} />
+                      <strong style={{ color: "var(--neon-cyan)" }}>{p.author.nickname}</strong>
+                    </div>
+                    <p style={{ marginBottom: "8px" }}>{p.content}</p>
+                    <time style={{ fontSize: "12px", color: "var(--text-muted)" }}>{formatPostDate(p.createdAt)}</time>
+                  </div>
+                  {isOwner && p.author.id === user?.id && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await api(`/profiles/me/wall/${p.id}`, { method: "DELETE" });
+                        loadWall();
+                      }}
+                      style={{
+                        background: "none",
+                        border: "1px solid var(--blood)",
+                        color: "var(--blood)",
+                        padding: "4px 8px",
+                        cursor: "pointer",
+                        fontSize: "12px",
+                        fontFamily: "var(--font-terminal)",
+                      }}
+                    >
+                      Удалить
+                    </button>
+                  )}
+                </div>
+                <div style={{ marginTop: "10px", display: "flex", alignItems: "center", gap: "8px" }}>
+                  {user && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await api(`/profiles/wall/${p.id}/react`, { method: "POST" });
+                        loadWall();
+                      }}
+                      style={{
+                        background: userReacted ? "rgba(176,38,255,0.2)" : "transparent",
+                        border: `1px solid ${userReacted ? "var(--neon-purple)" : "var(--border)"}`,
+                        color: userReacted ? "var(--neon-purple)" : "var(--text-muted)",
+                        padding: "4px 10px",
+                        cursor: "pointer",
+                        fontFamily: "var(--font-terminal)",
+                        fontSize: "14px",
+                      }}
+                    >
+                      Класс {classCount > 0 && `· ${classCount}`}
+                    </button>
+                  )}
+                  {!user && classCount > 0 && (
+                    <span style={{ fontSize: "13px", color: "var(--text-muted)", fontFamily: "var(--font-terminal)" }}>
+                      Класс · {classCount}
+                    </span>
+                  )}
+                </div>
+              </Card>
+            );
+          })}
         </div>
       )}
 

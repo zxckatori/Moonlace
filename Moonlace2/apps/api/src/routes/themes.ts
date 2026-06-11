@@ -16,6 +16,15 @@ export async function themeRoutes(app: FastifyInstance) {
     });
   });
 
+  app.get("/v1/themes/mine", { preHandler: [app.authenticate] }, async (req) => {
+    const { userId } = req.user as { userId: string };
+    return prisma.userTheme.findMany({
+      where: { authorId: userId },
+      include: { author: { select: { id: true, nickname: true, avatarUrl: true } } },
+      orderBy: { createdAt: "desc" },
+    });
+  });
+
   app.post("/v1/themes", { preHandler: [app.authenticate] }, async (req) => {
     const { userId } = req.user as { userId: string };
     const parsed = createThemeSchema.safeParse(req.body);
@@ -48,6 +57,23 @@ export async function themeRoutes(app: FastifyInstance) {
     });
 
     return theme;
+  });
+
+  app.patch("/v1/themes/:id", { preHandler: [app.authenticate] }, async (req) => {
+    const { userId } = req.user as { userId: string };
+    const { id } = req.params as { id: string };
+    const { isPublic, name } = req.body as { isPublic?: boolean; name?: string };
+
+    const theme = await prisma.userTheme.findUnique({ where: { id } });
+    if (!theme || theme.authorId !== userId) throw app.httpErrors.forbidden();
+
+    return prisma.userTheme.update({
+      where: { id },
+      data: {
+        ...(isPublic !== undefined ? { isPublic } : {}),
+        ...(name ? { name } : {}),
+      },
+    });
   });
 
   app.post("/v1/themes/:id/rate", { preHandler: [app.authenticate] }, async (req) => {

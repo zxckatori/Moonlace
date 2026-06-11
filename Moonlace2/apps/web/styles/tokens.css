@@ -1,4 +1,5 @@
-:root {
+:root,
+[data-theme="synthwave"] {
   --void: #050508;
   --abyss: #0a0a0f;
   --surface: rgba(18, 18, 26, 0.75);
@@ -11,6 +12,11 @@
   --blood: #ff0040;
   --glow-purple: rgba(176, 38, 255, 0.15);
   --glow-cyan: rgba(0, 240, 255, 0.12);
+  --bg-overlay: linear-gradient(135deg, rgba(5, 5, 8, 0.85) 0%, rgba(10, 10, 15, 0.75) 50%, rgba(5, 5, 8, 0.9) 100%);
+  --bg-glow-1: radial-gradient(ellipse at 20% 80%, rgba(176, 38, 255, 0.15) 0%, transparent 50%);
+  --bg-glow-2: radial-gradient(ellipse at 80% 20%, rgba(0, 240, 255, 0.1) 0%, transparent 50%);
+  --bg-sunset: linear-gradient(180deg, #0a0020 0%, #1a0030 30%, #0a0a1a 60%, #050508 100%);
+  --header-bg: rgba(5, 5, 8, 0.8);
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 16px;
@@ -21,4 +27,25 @@
   --font-body: "Space Mono", monospace;
   --font-terminal: "VT323", monospace;
   --font-editorial: "Cinzel", serif;
+}
+
+[data-theme="darkwave"] {
+  --void: #000002;
+  --abyss: #04040a;
+  --surface: rgba(6, 4, 10, 0.9);
+  --border: #2a1020;
+  --text: #9a8aa8;
+  --text-muted: #4a3a58;
+  --neon-purple: #5c1a6e;
+  --neon-cyan: #2a4a6a;
+  --neon-magenta: #990022;
+  --blood: #cc0022;
+  --glow-purple: rgba(92, 26, 110, 0.1);
+  --glow-cyan: rgba(42, 74, 106, 0.08);
+  --bg-overlay: linear-gradient(135deg, rgba(0, 0, 2, 0.96) 0%, rgba(12, 4, 16, 0.92) 100%);
+  --bg-glow-1: radial-gradient(ellipse at 8% 92%, rgba(153, 0, 34, 0.2) 0%, transparent 42%);
+  --bg-glow-2: radial-gradient(ellipse at 92% 8%, rgba(74, 21, 72, 0.14) 0%, transparent 42%);
+  --bg-sunset: linear-gradient(180deg, #0a0010 0%, #180008 28%, #060608 65%, #000002 100%);
+  --header-bg: rgba(0, 0, 2, 0.94);
+  --font-display: "Cinzel", serif;
 }

@@ -35,7 +35,7 @@ export function ActivityCard({ event }: { event: FeedEvent }) {
       detail = `${p.artist ? p.artist + " — " : ""}${p.trackTitle}`;
       break;
     case "STREAM_LIVE":
-      detail = `"${p.title}" — ${p.category || "Live"}`;
+      detail = `"${p.title}" — ${p.category || "Эфир"}`;
       break;
     case "WALL_POST":
       detail = p.preview || "";
@@ -56,7 +56,7 @@ export function ActivityCard({ event }: { event: FeedEvent }) {
           <span style={{ color: "var(--text-muted)", fontFamily: "var(--font-terminal)", fontSize: "16px" }}>
             {TYPE_LABELS[event.type] || event.type}
           </span>
-          {event.type === "STREAM_LIVE" && <Badge variant="live">LIVE</Badge>}
+          {event.type === "STREAM_LIVE" && <Badge variant="live">ЭФИР</Badge>}
         </div>
         {event.type === "LISTENING" ? (
           <div style={{ marginTop: "8px" }}>

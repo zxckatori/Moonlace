@@ -154,11 +154,44 @@ export async function profileRoutes(app: FastifyInstance) {
       where: { wallUserId: user.id },
       include: {
         author: { select: { id: true, nickname: true, avatarUrl: true } },
-        reactions: true,
+        reactions: { include: { user: { select: { id: true, nickname: true } } } },
         media: true,
       },
       orderBy: { createdAt: "desc" },
       take: 30,
     });
+  });
+
+  app.delete("/v1/profiles/me/wall/:postId", { preHandler: [app.authenticate] }, async (req) => {
+    const { userId } = req.user as { userId: string };
+    const { postId } = req.params as { postId: string };
+
+    const post = await prisma.post.findUnique({ where: { id: postId } });
+    if (!post || post.wallUserId !== userId || post.authorId !== userId) {
+      throw app.httpErrors.forbidden("Можно удалять только свои посты на своей стене");
+    }
+
+    await prisma.postReaction.deleteMany({ where: { postId } });
+    await prisma.post.delete({ where: { id: postId } });
+    return { ok: true };
+  });
+
+  app.post("/v1/profiles/wall/:postId/react", { preHandler: [app.authenticate] }, async (req) => {
+    const { userId } = req.user as { userId: string };
+    const { postId } = req.params as { postId: string };
+
+    const post = await prisma.post.findUnique({ where: { id: postId } });
+    if (!post?.wallUserId) throw app.httpErrors.notFound();
+
+    const existing = await prisma.postReaction.findUnique({
+      where: { postId_userId: { postId, userId } },
+    });
+    if (existing) {
+      await prisma.postReaction.delete({ where: { id: existing.id } });
+      return { reacted: false, type: "class" };
+    }
+
+    await prisma.postReaction.create({ data: { postId, userId, type: "class" } });
+    return { reacted: true, type: "class" };
   });
 }

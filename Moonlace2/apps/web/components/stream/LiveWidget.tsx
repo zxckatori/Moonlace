@@ -42,7 +42,7 @@ export function LiveWidget({
         <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
           <Avatar url={stream.user.avatarUrl} nickname={stream.user.nickname} size={24} />
           <span style={{ fontFamily: "var(--font-terminal)", fontSize: "16px" }}>{stream.user.nickname}</span>
-          <Badge variant="live">LIVE</Badge>
+          <Badge variant="live">ЭФИР</Badge>
         </div>
         {stream.title && (
           <div style={{ fontSize: "13px", marginBottom: "2px" }}>{stream.title}</div>

@@ -5,12 +5,12 @@ import * as argon2 from "argon2";
 const prisma = new PrismaClient();
 
 const CATEGORIES = [
-  { slug: "synthwave", name: "Synthwave", description: "Музыка, арт, эстетика synthwave", sortOrder: 1 },
-  { slug: "darkwave", name: "Darkwave", description: "Dark wave, gothic, coldwave", sortOrder: 2 },
-  { slug: "anime", name: "Anime", description: "Аниме, манга, косплей", sortOrder: 3 },
-  { slug: "music", name: "Music", description: "Музыка всех жанров, плейлисты, релизы", sortOrder: 4 },
-  { slug: "tech", name: "Tech", description: "Железо, софт, setup, периферия", sortOrder: 5 },
-  { slug: "offtopic", name: "Offtopic", description: "Всё остальное", sortOrder: 6 },
+  { slug: "synthwave", name: "Синтвейв", description: "Музыка, арт, эстетика synthwave", sortOrder: 1 },
+  { slug: "darkwave", name: "Дарквейв", description: "Dark wave, gothic, coldwave", sortOrder: 2 },
+  { slug: "anime", name: "Аниме", description: "Аниме, манга, косплей", sortOrder: 3 },
+  { slug: "music", name: "Музыка", description: "Музыка всех жанров, плейлисты, релизы", sortOrder: 4 },
+  { slug: "tech", name: "Техника", description: "Железо, софт, setup, периферия", sortOrder: 5 },
+  { slug: "offtopic", name: "Офтоп", description: "Всё остальное", sortOrder: 6 },
 ];
 
 async function main() {

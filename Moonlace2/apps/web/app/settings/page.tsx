@@ -6,11 +6,16 @@ import { api, getUploadUrl } from "@/lib/api";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { Avatar } from "@/components/ui/Avatar";
 import { useAuth } from "@/lib/store";
+import { useToast } from "@/components/providers/ToastProvider";
 
 export default function SettingsPage() {
   const { user, fetchMe } = useAuth();
+  const { showToast } = useToast();
   const router = useRouter();
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [backgroundUrl, setBackgroundUrl] = useState<string | null>(null);
   const [form, setForm] = useState({
     status: "",
     country: "",
@@ -28,12 +33,14 @@ export default function SettingsPage() {
   });
   const [track, setTrack] = useState({ trackTitle: "", artist: "" });
   const [saved, setSaved] = useState(false);
+  const [uploading, setUploading] = useState<"avatar" | "background" | null>(null);
 
-  useEffect(() => {
-    if (!user) { router.push("/login"); return; }
+  const loadProfile = () => {
     api<{
       status?: string;
+      avatarUrl?: string | null;
       profile?: {
+        backgroundUrl?: string | null;
         country?: string;
         city?: string;
         timezone?: string;
@@ -45,6 +52,8 @@ export default function SettingsPage() {
         privacySettings?: { guestbook: string; showSetup: boolean; showListening: boolean };
       };
     }>("/users/me").then((u) => {
+      setAvatarUrl(u.avatarUrl ?? null);
+      setBackgroundUrl(u.profile?.backgroundUrl ?? null);
       setForm({
         status: u.status || "",
         country: u.profile?.country || "",
@@ -61,63 +70,86 @@ export default function SettingsPage() {
         showListening: u.profile?.privacySettings?.showListening ?? true,
       });
     });
+  };
+
+  useEffect(() => {
+    if (!user) { router.push("/login"); return; }
+    loadProfile();
   }, [user, router]);
 
   const save = async () => {
-    await api("/profiles/me", {
-      method: "PATCH",
-      body: JSON.stringify({
-        status: form.status,
-        country: form.country,
-        city: form.city,
-        timezone: form.timezone,
-        setupKeyboard: form.setupKeyboard,
-        setupMouse: form.setupMouse,
-        setupPc: form.setupPc,
-        setupComponents: form.setupComponents,
-        socialLinks: { twitch: form.twitch, youtube: form.youtube },
-        privacySettings: {
-          guestbook: form.guestbook,
-          showLogin: false,
-          showSetup: form.showSetup,
-          showListening: form.showListening,
-        },
-      }),
-    });
-    await api("/profiles/me/stream-links", {
-      method: "PUT",
-      body: JSON.stringify({ twitch: form.twitch, youtube: form.youtube }),
-    });
-    setSaved(true);
-    fetchMe();
-    setTimeout(() => setSaved(false), 2000);
+    try {
+      await api("/profiles/me", {
+        method: "PATCH",
+        body: JSON.stringify({
+          status: form.status,
+          country: form.country,
+          city: form.city,
+          timezone: form.timezone,
+          setupKeyboard: form.setupKeyboard,
+          setupMouse: form.setupMouse,
+          setupPc: form.setupPc,
+          setupComponents: form.setupComponents,
+          socialLinks: { twitch: form.twitch, youtube: form.youtube },
+          privacySettings: {
+            guestbook: form.guestbook,
+            showLogin: false,
+            showSetup: form.showSetup,
+            showListening: form.showListening,
+          },
+        }),
+      });
+      await api("/profiles/me/stream-links", {
+        method: "PUT",
+        body: JSON.stringify({ twitch: form.twitch, youtube: form.youtube }),
+      });
+      setSaved(true);
+      fetchMe();
+      showToast("Настройки сохранены");
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Ошибка сохранения", "error");
+    }
   };
 
-  const uploadAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const fd = new FormData();
-    fd.append("file", file);
-    const token = localStorage.getItem("accessToken");
-    await fetch(getUploadUrl("/profiles/me/avatar"), {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-      body: fd,
-    });
-    fetchMe();
+  const uploadFile = async (file: File, endpoint: string, kind: "avatar" | "background") => {
+    setUploading(kind);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const token = localStorage.getItem("accessToken");
+      const res = await fetch(getUploadUrl(endpoint), {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Ошибка загрузки" }));
+        throw new Error(typeof err.error === "string" ? err.error : "Ошибка загрузки");
+      }
+      const data = await res.json();
+      if (kind === "avatar" && data.avatarUrl) setAvatarUrl(data.avatarUrl);
+      if (kind === "background" && data.backgroundUrl) setBackgroundUrl(data.backgroundUrl);
+      await fetchMe();
+      loadProfile();
+      showToast(kind === "avatar" ? "Аватар обновлён" : "Фон профиля обновлён");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Не удалось загрузить файл", "error");
+    } finally {
+      setUploading(null);
+    }
   };
 
-  const uploadBackground = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const uploadAvatar = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-    const fd = new FormData();
-    fd.append("file", file);
-    const token = localStorage.getItem("accessToken");
-    await fetch(getUploadUrl("/profiles/me/background"), {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}` },
-      body: fd,
-    });
+    if (file) uploadFile(file, "/profiles/me/avatar", "avatar");
+    e.target.value = "";
+  };
+
+  const uploadBackground = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) uploadFile(file, "/profiles/me/background", "background");
+    e.target.value = "";
   };
 
   const setNowPlaying = async (share = false) => {
@@ -125,6 +157,7 @@ export default function SettingsPage() {
       method: "PUT",
       body: JSON.stringify({ ...track, share }),
     });
+    showToast(share ? "Трек опубликован в ленте" : "Сейчас слушаю обновлено");
   };
 
   return (
@@ -133,18 +166,40 @@ export default function SettingsPage() {
 
       <Card style={{ marginBottom: "16px" }}>
         <h2 style={{ fontFamily: "var(--font-terminal)", fontSize: "18px", marginBottom: "12px" }}>ПРОФИЛЬ</h2>
-        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-          <label>Аватар <input type="file" accept="image/*" onChange={uploadAvatar} /></label>
-          <label>Фон профиля <input type="file" accept="image/*" onChange={uploadBackground} /></label>
+        <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+            <Avatar url={avatarUrl} nickname={user?.nickname || "?"} size={64} />
+            <label style={{ fontSize: "13px" }}>
+              Аватар
+              <input type="file" accept="image/*" onChange={uploadAvatar} disabled={uploading === "avatar"} style={{ display: "block", marginTop: "4px" }} />
+              {uploading === "avatar" && <span style={{ color: "var(--text-muted)" }}>Загрузка...</span>}
+            </label>
+          </div>
+          <div>
+            <label style={{ fontSize: "13px", display: "block", marginBottom: "6px" }}>Фон профиля</label>
+            {backgroundUrl && (
+              <div
+                style={{
+                  height: "80px",
+                  borderRadius: "4px",
+                  background: `url(${backgroundUrl}) center/cover`,
+                  border: "1px solid var(--border)",
+                  marginBottom: "8px",
+                }}
+              />
+            )}
+            <input type="file" accept="image/*" onChange={uploadBackground} disabled={uploading === "background"} />
+            {uploading === "background" && <span style={{ color: "var(--text-muted)", fontSize: "12px" }}> Загрузка...</span>}
+          </div>
           <Input placeholder="Статус" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} />
           <Input placeholder="Страна" value={form.country} onChange={(e) => setForm({ ...form, country: e.target.value })} />
           <Input placeholder="Город" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} />
-          <Input placeholder="Timezone (IANA)" value={form.timezone} onChange={(e) => setForm({ ...form, timezone: e.target.value })} />
+          <Input placeholder="Часовой пояс (IANA)" value={form.timezone} onChange={(e) => setForm({ ...form, timezone: e.target.value })} />
         </div>
       </Card>
 
       <Card style={{ marginBottom: "16px" }}>
-        <h2 style={{ fontFamily: "var(--font-terminal)", fontSize: "18px", marginBottom: "12px" }}>SETUP</h2>
+        <h2 style={{ fontFamily: "var(--font-terminal)", fontSize: "18px", marginBottom: "12px" }}>СЕТАП</h2>
         <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
           <Input placeholder="Клавиатура" value={form.setupKeyboard} onChange={(e) => setForm({ ...form, setupKeyboard: e.target.value })} />
           <Input placeholder="Мышь" value={form.setupMouse} onChange={(e) => setForm({ ...form, setupMouse: e.target.value })} />
@@ -161,8 +216,8 @@ export default function SettingsPage() {
 
       <Card style={{ marginBottom: "16px" }}>
         <h2 style={{ fontFamily: "var(--font-terminal)", fontSize: "18px", marginBottom: "12px" }}>СТРИМЫ</h2>
-        <Input placeholder="Twitch username" value={form.twitch} onChange={(e) => setForm({ ...form, twitch: e.target.value })} />
-        <Input placeholder="YouTube channel" value={form.youtube} onChange={(e) => setForm({ ...form, youtube: e.target.value })} style={{ marginTop: "10px" }} />
+        <Input placeholder="Имя на Twitch" value={form.twitch} onChange={(e) => setForm({ ...form, twitch: e.target.value })} />
+        <Input placeholder="Канал YouTube" value={form.youtube} onChange={(e) => setForm({ ...form, youtube: e.target.value })} style={{ marginTop: "10px" }} />
       </Card>
 
       <Card style={{ marginBottom: "16px" }}>

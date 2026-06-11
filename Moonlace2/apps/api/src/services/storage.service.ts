@@ -60,14 +60,20 @@ export async function uploadFile(
   category: keyof typeof SIZE_LIMITS,
   filename?: string
 ): Promise<string> {
-  if (!process.env.S3_ENDPOINT) {
-    throw new Error("MEDIA_STORAGE_NOT_CONFIGURED");
-  }
-  await ensureBucket();
   const limit = SIZE_LIMITS[category] || SIZE_LIMITS.image;
   if (buffer.length > limit) {
     throw new Error(`FILE_TOO_LARGE: max ${limit / 1024 / 1024}MB`);
   }
+
+  if (!process.env.S3_ENDPOINT) {
+    if (category === "avatar" || category === "background") {
+      const base64 = buffer.toString("base64");
+      return `data:${mimeType};base64,${base64}`;
+    }
+    throw new Error("MEDIA_STORAGE_NOT_CONFIGURED");
+  }
+
+  await ensureBucket();
   const ext = MIME_MAP[mimeType] || filename?.split(".").pop() || "bin";
   const key = `${category}/${randomUUID()}.${ext}`;
   await s3.send(
