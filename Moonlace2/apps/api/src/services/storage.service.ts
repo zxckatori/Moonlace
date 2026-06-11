@@ -42,6 +42,10 @@ let bucketReady = false;
 
 export async function ensureBucket() {
   if (bucketReady) return;
+  if (!process.env.S3_ENDPOINT) {
+    bucketReady = true;
+    return;
+  }
   try {
     await s3.send(new HeadBucketCommand({ Bucket: config.s3.bucket }));
   } catch {
@@ -56,6 +60,9 @@ export async function uploadFile(
   category: keyof typeof SIZE_LIMITS,
   filename?: string
 ): Promise<string> {
+  if (!process.env.S3_ENDPOINT) {
+    throw new Error("MEDIA_STORAGE_NOT_CONFIGURED");
+  }
   await ensureBucket();
   const limit = SIZE_LIMITS[category] || SIZE_LIMITS.image;
   if (buffer.length > limit) {
