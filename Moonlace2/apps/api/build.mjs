@@ -16,8 +16,6 @@ await esbuild.build({
   format: "cjs",
   sourcemap: true,
   external: [
-    "@moonlace/db",
-    "@moonlace/shared",
     "@prisma/client",
     ".prisma/client",
     "argon2",

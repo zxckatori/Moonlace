@@ -29,6 +29,7 @@ declare module "fastify" {
 
 async function main() {
   const app = Fastify({ logger: true });
+  app.decorate("io", undefined! as Server);
 
   await app.register(sensible);
 
@@ -77,7 +78,7 @@ async function main() {
   const io = new Server(app.server, {
     cors: { origin: config.webUrl, credentials: true },
   });
-  app.decorate("io", io);
+  app.io = io;
 
   io.on("connection", (socket) => {
     socket.on("join", (userId: string) => {
