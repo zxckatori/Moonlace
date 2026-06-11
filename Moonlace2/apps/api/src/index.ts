@@ -75,6 +75,8 @@ async function main() {
 
   await app.ready();
 
+  await app.listen({ port: config.port, host: "0.0.0.0" });
+
   const io = new Server(app.server, {
     cors: { origin: config.webUrl, credentials: true },
   });
@@ -88,7 +90,6 @@ async function main() {
 
   startTwitchPollJob(io);
 
-  await app.listen({ port: config.port, host: "0.0.0.0" });
   console.log(`Moonlace API running on http://localhost:${config.port}`);
 }
 
